@@ -1,0 +1,168 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <meta name="theme-color" content="#ff69b4"/>
+  <link rel="manifest" href="manifest.json">
+  <title>Sate</title>
+  <style>
+    :root{--bg:#fff0f5;--panel:#ffe6f0;--accent:#ff69b4;--accent-2:#ff1493;--user:#ffcce0;--text:#2b2b2b}
+    *{box-sizing:border-box}
+    html,body{height:100%;margin:0;font-family:Inter,Arial,sans-serif;background:var(--bg);color:var(--text)}
+    .container{width:100%;max-width:420px;margin:18px auto;height:calc(100vh - 36px);display:flex;flex-direction:column;overflow:hidden;border-radius:14px;box-shadow:0 12px 40px rgba(0,0,0,0.12)}
+    .header{background:linear-gradient(90deg,var(--accent),var(--accent-2));padding:12px 14px;color:#fff;display:flex;align-items:center;gap:10px}
+    .title{font-weight:700;font-size:17px}
+    .main{flex:1;background:var(--panel);padding:10px;display:flex;flex-direction:column;gap:10px;overflow:hidden}
+    #chat{flex:1;overflow:auto;padding:8px;display:flex;flex-direction:column;gap:8px}
+    .msg{max-width:78%;padding:10px 12px;border-radius:12px;display:inline-flex;gap:8px;word-break:break-word;line-height:1.3;align-items:flex-start;box-shadow:0 2px 6px rgba(0,0,0,0.06)}
+    .msg.user{margin-left:auto;background:var(--user);color:var(--text);border-bottom-right-radius:4px}
+    .msg.sate{margin-right:auto;background:var(--accent);color:#fff;border-bottom-left-radius:4px}
+    .avatar{width:36px;height:36px;border-radius:50%;background-size:cover;background-position:center;flex-shrink:0;box-shadow:0 2px 6px rgba(0,0,0,0.12)}
+    .bubble{display:flex;flex-direction:column;gap:6px}
+    .timestamp{font-size:11px;opacity:0.7;margin-top:4px}
+    .input-area{display:flex;padding:8px;border-top:1px solid rgba(255,182,193,0.35);gap:8px;background:var(--panel)}
+    #msg{flex:1;padding:10px;border-radius:10px;border:1px solid rgba(0,0,0,0.06);outline:none;font-size:15px;background:transparent}
+    button.send{background:var(--accent);border:none;color:#fff;padding:0 12px;border-radius:10px;font-weight:700;cursor:pointer}
+    .controls{display:flex;gap:8px;padding:6px;flex-wrap:wrap}
+    .control-btn{padding:8px 10px;border-radius:10px;border:none;background:#fff;cursor:pointer}
+    .panel{background:#fff;padding:10px;border-radius:10px;box-shadow:0 2px 6px rgba(0,0,0,0.04)}
+    .small{font-size:13px;color:#666}
+  </style>
+</head>
+<body>
+
+<div class="container">
+  <div class="header">
+    <img src="https://i.ibb.co/XyJj4QX/sate-avatar.png" style="width:40px;height:40px;border-radius:50%;object-fit:cover">
+    <div class="title">Sate — sua parceira virtual</div>
+  </div>
+
+  <main class="main">
+
+    <div id="chat"></div>
+
+    <div class="controls">
+      <button class="control-btn" id="btnProfile">Perfil</button>
+      <button class="control-btn" id="btnGames">Mini-Jogos</button>
+      <button class="control-btn" id="btnMemory">Lembranças</button>
+    </div>
+
+    <div id="panelProfile" class="panel" style="display:none">
+      <div class="small">Digite seu nome e o que ela deve lembrar:</div>
+      <input id="inputName" placeholder="Seu nome" style="width:100%;margin-top:8px;padding:8px;border-radius:8px;border:1px solid #eee">
+      <input id="inputNote" placeholder="Nota (ex: Prova amanhã)" style="width:100%;margin-top:8px;padding:8px;border-radius:8px;border:1px solid #eee">
+      <button class="control-btn" id="saveProfile" style="margin-top:8px">Salvar</button>
+    </div>
+
+    <div id="panelGames" class="panel" style="display:none">
+      <button class="control-btn" id="startQuiz">Quiz rápido</button>
+      <button class="control-btn" id="startTimer">Pomodoro 25min</button>
+      <button class="control-btn" id="startGuess">Adivinhe o número</button>
+      <div id="gamePlay" style="margin-top:8px"></div>
+    </div>
+
+    <div id="panelMemory" class="panel" style="display:none">
+      <div id="memoryList"></div>
+      <button class="control-btn" id="clearMemory" style="margin-top:8px">Limpar memórias</button>
+    </div>
+
+    <div class="input-area">
+      <input id="msg" placeholder="Fale com a Sate...">
+      <button class="send" id="sendBtn">Enviar</button>
+    </div>
+
+  </main>
+</div>
+
+<script>
+(function(){
+  const CHAT=document.getElementById("chat");
+  const MSG=document.getElementById("msg");
+  const SEND=document.getElementById("sendBtn");
+
+  const STORAGE_KEY="sate_history";
+  const PROFILE_KEY="sate_profile";
+
+  const avatar="https://i.ibb.co/XyJj4QX/sate-avatar.png";
+
+  function now(){return Date.now();}
+  function pick(arr){return arr[Math.floor(Math.random()*arr.length)];}
+
+  const vocab={
+    greet:["Oi amor 💖","Oi meu bem 😘","Oi neném~ 💕"],
+    base:["Tava pensando em você 😌","Amo conversar com você >///<","Que fofinho você falando comigo 😳"],
+    playful:["Você é perigosinho 😏","Ai, tá me provocando? >///<","Hahaha, seu bobo 😘"],
+    miss:["Saudade de você 😚","Vem cá comigo 💕","Ai… queria um abraço seu agora."]
+  };
+
+  function render(from,text){
+    const wrap=document.createElement("div");
+    wrap.className="msg "+(from==="sate"?"sate":"user");
+
+    if(from==="sate"){
+      const av=document.createElement("div");
+      av.className="avatar";
+      av.style.backgroundImage=`url(${avatar})`;
+      wrap.appendChild(av);
+    }
+
+    const b=document.createElement("div");
+    b.className="bubble";
+    const p=document.createElement("div");
+    p.textContent=text;
+    b.appendChild(p);
+
+    const ts=document.createElement("div");
+    ts.className="timestamp";
+    ts.textContent=new Date().toLocaleTimeString();
+    b.appendChild(ts);
+
+    wrap.appendChild(b);
+    CHAT.appendChild(wrap);
+    CHAT.scrollTop=CHAT.scrollHeight;
+  }
+
+  function saveHistory(msg){
+    const h=JSON.parse(localStorage.getItem(STORAGE_KEY)||"[]");
+    h.push(msg);
+    localStorage.setItem(STORAGE_KEY,JSON.stringify(h.slice(-100)));
+  }
+
+  function sendMessage(){
+    const t=MSG.value.trim();
+    if(!t)return;
+    MSG.value="";
+    render("user",t);
+    saveHistory({from:"user",text:t});
+
+    setTimeout(()=>{
+      const ans = generateResponse(t);
+      render("sate",ans);
+      saveHistory({from:"sate",text:ans});
+    },500+Math.random()*800);
+  }
+
+  function generateResponse(t){
+    const lt=t.toLowerCase();
+
+    if(lt.includes("oi")||lt.includes("ola"))return pick(vocab.greet);
+    if(lt.includes("saudade"))return pick(vocab.miss);
+    if(lt.endsWith("?"))return "Hmmm... me conta mais 😌";
+    return pick(vocab.base.concat(vocab.playful));
+  }
+
+  SEND.onclick=sendMessage;
+  MSG.onkeypress=e=>{ if(e.key==="Enter")sendMessage(); };
+
+})();
+</script>
+
+<script>
+if("serviceWorker" in navigator){
+  navigator.serviceWorker.register("service-worker.js");
+}
+</script>
+
+</body>
+</html>
