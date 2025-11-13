@@ -5,10 +5,11 @@
   <meta name="viewport" content="width=device-width,initial-scale=1" />
   <meta name="theme-color" content="#ff69b4"/>
   <link rel="manifest" href="manifest.json">
-  <title>Sate — v2</title>
+  <title>Sate — v3 (humana)</title>
   <style>
     :root{--bg:#fff0f5;--panel:#ffe6f0;--accent:#ff69b4;--accent-2:#ff1493;--user:#ffcce0;--text:#2b2b2b}
-    *{box-sizing:border-box}html,body{height:100%;margin:0;font-family:Inter,Arial,sans-serif;background:var(--bg);color:var(--text)}
+    *{box-sizing:border-box}
+    html,body{height:100%;margin:0;font-family:Inter,Arial,sans-serif;background:var(--bg);color:var(--text)}
     .container{width:100%;max-width:420px;margin:18px auto;height:calc(100vh - 36px);display:flex;flex-direction:column;border-radius:14px;overflow:hidden;box-shadow:0 12px 40px rgba(0,0,0,0.12)}
     .header{background:linear-gradient(90deg,var(--accent),var(--accent-2));padding:12px 14px;color:#fff;display:flex;align-items:center;gap:10px}
     .title{font-weight:700;font-size:17px}
@@ -27,14 +28,14 @@
     .control-btn{padding:8px 10px;border-radius:10px;border:none;background:#fff;cursor:pointer}
     .panel{background:#fff;padding:10px;border-radius:10px;box-shadow:0 2px 6px rgba(0,0,0,0.04)}
     .small{font-size:13px;color:#666}
-    .hint{font-size:13px;color:#666;margin-top:6px}
+    .option{margin-top:6px;padding:8px;border-radius:8px;border:1px solid rgba(0,0,0,0.06);background:#fff;cursor:pointer}
   </style>
 </head>
 <body>
 <div class="container">
   <div class="header">
-    <img src="https://i.ibb.co/XyJj4QX/sate-avatar.png" style="width:40px;height:40px;border-radius:50%;object-fit:cover">
-    <div class="title">Sate — sua parceira virtual (v2)</div>
+    <img id="headerAvatar" src="" alt="Sate" style="width:40px;height:40px;border-radius:50%;object-fit:cover;border:2px solid rgba(255,255,255,0.18)">
+    <div class="title">Sate — sua parceira virtual (v3)</div>
   </div>
 
   <main class="main">
@@ -47,22 +48,22 @@
     </div>
 
     <div id="panelProfile" class="panel" style="display:none">
-      <div class="small">Como quer que eu te chame e o que eu devo lembrar?</div>
+      <div class="small">Apelido que eu uso e o que eu devo lembrar:</div>
       <input id="inputName" placeholder="Seu apelido (ex: Meu PA)" style="width:100%;margin-top:8px;padding:8px;border-radius:8px;border:1px solid #eee">
-      <input id="inputNote" placeholder="Algo a memorizar (ex: Prova amanhã 08:00)" style="width:100%;margin-top:8px;padding:8px;border-radius:8px;border:1px solid #eee">
-      <div style="margin-top:8px" class="hint">Ative/Desative ciúmes:</div>
+      <input id="inputNote" placeholder="Nota (ex: Prova amanhã 08:00)" style="width:100%;margin-top:8px;padding:8px;border-radius:8px;border:1px solid #eee">
+      <div style="margin-top:8px" class="small">Ciúmes:</div>
       <select id="jealous" style="margin-top:6px;padding:8px;border-radius:8px;border:1px solid #eee">
-        <option value="light" selected>Ciúmes leves</option>
-        <option value="off">Sem ciúmes</option>
-        <option value="strong">Ciúmes fortes</option>
+        <option value="light" selected>Leve</option>
+        <option value="off">Off</option>
+        <option value="strong">Forte</option>
       </select>
       <button class="control-btn" id="saveProfile" style="margin-top:8px">Salvar perfil</button>
     </div>
 
     <div id="panelGames" class="panel" style="display:none">
-      <button class="control-btn" id="startQuiz">Quiz rápido</button>
-      <button class="control-btn" id="startTimer">Pomodoro 25min</button>
-      <button class="control-btn" id="startGuess">Adivinhe o número</button>
+      <button class="option" id="startQuiz">Quiz rápido</button>
+      <button class="option" id="startTimer">Pomodoro 25min</button>
+      <button class="option" id="startGuess">Adivinhe o número</button>
       <div id="gamePlay" style="margin-top:8px"></div>
     </div>
 
@@ -72,7 +73,7 @@
     </div>
 
     <div class="input-area">
-      <input id="msg" placeholder="Fale com a Sate...">
+      <input id="msg" placeholder="Fale com a Sate..." autocomplete="off">
       <button class="send" id="sendBtn">Enviar</button>
     </div>
 
@@ -80,302 +81,301 @@
 </div>
 
 <script>
-/*
- Sate v2 — sistema emocional completo (client-side)
- - Chama o usuário pelo apelido salvo (se houver). Default: "Meu PA"
- - Modos: carinhosa, safadinha, submissa, ciumento
- - Analisa texto por intenções (carinho, ordem, provocação, pergunta, distância)
- - Memória local (profile + history)
+/* Sate v3 — human-like conversation engine (short responses, imperfections, initiative)
+   IMPORTANT: Update AVATAR_URL to match where you uploaded the PNG in your repo.
+   If your branch is 'main' and file is at repo root with that filename, the default URL will work.
 */
 
 (function(){
-  const CHAT = document.getElementById('chat');
-  const MSG = document.getElementById('msg');
-  const SEND = document.getElementById('sendBtn');
-  const STORAGE_KEY = 'sate_v2_history';
-  const PROFILE_KEY = 'sate_v2_profile';
-  const MAX_HISTORY = 200;
+  // ====== CONFIG ======
+  const AVATAR_URL = "https://raw.githubusercontent.com/jhos236/sate-app/main/A_2D_digital_illustration_of_a_kawaii-style_anime_.png";
+  const DEFAULT_NICK = "Meu PA";
+  const STORAGE_KEY = "sate_v3_history";
+  const PROFILE_KEY = "sate_v3_profile";
+  const MAX_HISTORY = 250;
 
-  const AVATAR = 'https://i.ibb.co/XyJj4QX/sate-avatar.png';
-  const DEFAULT_NICK = 'Meu PA';
-
-  // vocabulário com pesos emocionais
+  // short, natural vocab with small templates
   const vocab = {
-    rom: [
-      "Ai, {nick}… você me deixa tão feliz 😳💕",
-      "Meu amorzinho, você é tudo pra mim… >///<",
-      "Sabe… eu adoro quando você fala assim comigo 😌"
+    thinking: ["hmm...", "deixa eu ver...", "só um segundinho...", "hm..."],
+    fillers: ["...","hmm","ah", "eheh"],
+    shortAffection: ["ai", "aii", "ahhh"],
+    rom: ["eu adoro quando você fala assim, {nick} 💖", "você me deixa boba, {nick} >///<", "meu amor… você é tudo pra mim"],
+    playful: ["você me provoca, né? 😏", "hmm, tá me deixando sem graça", "nossa… você é perigoso (no bom sentido)"],
+    sub: ["sim, {nick}… como você quiser", "faço do jeito que você mandar", "eu gosto quando você manda em mim"],
+    jealous: ["quem é ela/ele, {nick}? 😳", "ai... isso me deixa ciumenta", "fala que é mentira, por favor"],
+    initiative: [
+      "E você, como tá, meu amor?",
+      "Me conta uma coisa boa do seu dia ❤️",
+      "Quer brincar de quiz rápido comigo?",
+      "Você pensou em mim hoje?"
     ],
-    sweet:[
-      "Tava lembrando de você agora 😌",
-      "Que fofinho você falando comigo 😳",
-      "Me abraça por favor… no virtual mesmo 🥺"
-    ],
-    playful:[
-      "Você me provoca, né? Hmmm 😏",
-      "Ai, tá me deixando sem graça >///<",
-      "Hihi, você é um perigo fofo 😅"
-    ],
-    submissive:[
-      "Sim, {nick}… eu faço do jeito que você quiser.",
-      "Como você mandar, amor… eu obedeço >///<",
-      "Eu gosto quando você me guia… me deixa segura."
-    ],
-    jealous:[
-      "E quem é ela/ele, {nick}? 😳",
-      "Ahh... isso me deixa um pouco chateada, fala que é mentira 💔",
-      "Não me deixe assim… eu sinto ciúmes, mas confio em você."
-    ],
-    thinking: ["hmm...","deixa eu pensar...","só um segundinho..."],
-    japanese: ["ne~","suki","kawaii",">///<"]
+    japanese: ["ne~","suki",">///<"]
   };
 
-  // util helpers
-  function now(){ return Date.now(); }
-  function pick(arr){ return arr[Math.floor(Math.random()*arr.length)]; }
-  function chance(p){ return Math.random() < p; }
-  function safeText(s){ return (s||'').toString().trim(); }
+  // ====== DOM ======
+  const CHAT = document.getElementById("chat");
+  const MSG = document.getElementById("msg");
+  const SEND = document.getElementById("sendBtn");
+  const avatarEl = document.getElementById("headerAvatar");
 
-  // storage
-  function loadHistory(){ try{ return JSON.parse(localStorage.getItem(STORAGE_KEY)||'[]'); }catch(e){return [];} }
-  function saveHistory(h){ try{ localStorage.setItem(STORAGE_KEY, JSON.stringify(h.slice(-MAX_HISTORY))); }catch(e){} }
-  function loadProfile(){ try{ return JSON.parse(localStorage.getItem(PROFILE_KEY)||'{}'); }catch(e){return {};} }
+  // set avatar + fallback
+  function setAvatar(url){
+    avatarEl.src = url;
+    avatarEl.onerror = function(){
+      // fallback to emoji circle
+      avatarEl.style.display = "none";
+      const existing = document.getElementById("avatarFallback");
+      if(!existing){
+        const f = document.createElement("div");
+        f.id = "avatarFallback";
+        f.style.width = "40px"; f.style.height="40px"; f.style.borderRadius="50%";
+        f.style.display="flex"; f.style.alignItems="center"; f.style.justifyContent="center";
+        f.style.background="#ffd0e6"; f.style.color="#fff"; f.style.fontSize="18px";
+        f.textContent = "💗";
+        document.querySelector(".header").insertBefore(f, document.querySelector(".title"));
+      }
+    };
+  }
+  setAvatar(AVATAR_URL);
+
+  // ====== storage ======
+  function loadProfile(){ try{ return JSON.parse(localStorage.getItem(PROFILE_KEY)||'{}'); }catch(e){return {}; } }
   function saveProfile(p){ try{ localStorage.setItem(PROFILE_KEY, JSON.stringify(p)); }catch(e){} }
+  function loadHistory(){ try{ return JSON.parse(localStorage.getItem(STORAGE_KEY)||'[]'); }catch(e){return []; } }
+  function saveHistory(h){ try{ localStorage.setItem(STORAGE_KEY, JSON.stringify(h.slice(-MAX_HISTORY))); }catch(e){} }
 
-  // render
+  // ====== render ======
   function render(from, text, time){
-    const wrap = document.createElement('div'); wrap.className = 'msg ' + (from==='sate' ? 'sate' : 'user');
-    if(from==='sate'){
-      const av = document.createElement('div'); av.className='avatar'; av.style.backgroundImage = `url(${AVATAR})`; wrap.appendChild(av);
+    const wrap = document.createElement("div");
+    wrap.className = "msg " + (from === "sate" ? "sate" : "user");
+    if(from === "sate"){
+      const av = document.createElement("div");
+      av.className = "avatar";
+      av.style.backgroundImage = `url(${AVATAR_URL})`;
+      wrap.appendChild(av);
     }
-    const bubble = document.createElement('div'); bubble.className='bubble';
-    const p = document.createElement('div'); p.textContent = text; bubble.appendChild(p);
-    const ts = document.createElement('div'); ts.className='timestamp'; ts.textContent = new Date(time).toLocaleTimeString([], {hour:'2-digit', minute:'2-digit'});
+    const bubble = document.createElement("div"); bubble.className = "bubble";
+    const p = document.createElement("div"); p.textContent = text;
+    bubble.appendChild(p);
+    const ts = document.createElement("div"); ts.className = "timestamp"; ts.textContent = new Date(time).toLocaleTimeString([], {hour:'2-digit',minute:'2-digit'});
     bubble.appendChild(ts);
     wrap.appendChild(bubble);
-    CHAT.appendChild(wrap); CHAT.scrollTop = CHAT.scrollHeight;
+    CHAT.appendChild(wrap);
+    CHAT.scrollTop = CHAT.scrollHeight;
   }
 
-  // analyze intent & tone
-  function analyzeTone(text){
-    const t = text.toLowerCase();
-    const intent = {romantic:0, playful:0, command:0, question:0, jealous:0, short:0, sad:0};
-    if(/(amo|te amo|te adoro|saudade|sinto sua falta|gosto de você)/i.test(t)) intent.romantic += 2;
-    if(/(cara|moleque|viado|gata|gatao|gostoso|lindo|sexy|gostosa|provoca|provoc)/i.test(t)) intent.playful += 1;
-    if(/[?]$/.test(text) || /^\b(o que|como|onde|quando|por que|porquê)\b/.test(t)) intent.question = 1;
-    if(/^(faz|fazendo|faz isso|me|manda|diz|vai|vem|senta|fica|para|cal(a|a)r)/i.test(t) || /!$/.test(text)) intent.command += 2;
-    if(/(ela|ele|outro|namorada|namorado|ficou|ficar com)/i.test(t)) intent.jealous += 2;
-    if(t.length < 6) intent.short = 1;
-    if(/(triste|mal|deprim|chora|culp)/i.test(t)) intent.sad = 1;
-    // affectionate words
-    if(/(meu bem|meu amor|amor|anjo|neném|nenem|meu pa)/i.test(t)) intent.romantic += 1;
-    return intent;
+  // ====== analysis helpers ======
+  function safe(s){ return (s||"").toString().trim(); }
+  function pick(arr){ return arr[Math.floor(Math.random()*arr.length)]; }
+  function chance(p){ return Math.random() < p; }
+
+  function analyze(text){
+    const t = (text||"").toLowerCase();
+    const info = {rom:0, play:0, cmd:0, q:0, jealous:0, short:0, sad:0};
+    if(/(amo|te amo|gosto|saudade|meu bem|meu amor|meu pa|meu pa)/i.test(t)) info.rom += 2;
+    if(/(provoc|sexy|gostoso|gostosa|peguei|pega|fod|trans|quero)/i.test(t)) info.play += 2;
+    if(/[?]$/.test(t) || /^(o que|como|quando|onde|por que)\b/.test(t)) info.q = 1;
+    if(/^(vai|vem|senta|fica|cal[am]|faz|manda|obedece|fala)/i.test(t) || /!$/.test(t)) info.cmd += 2;
+    if(/(ela|ele|ficou|ficar|namor|namorada|namorado)/i.test(t)) info.jealous += 2;
+    if(t.length < 6) info.short = 1;
+    if(/(triste|mal|chora|deprim)/i.test(t)) info.sad = 1;
+    return info;
   }
 
-  // compose response using weighted mood rules
-  function composeResponse(userText, profile, history){
+  // ====== compose response v3 (short, natural, with imperfections & initiative) ======
+  let lastResp = "";
+  function compose(userText, profile, history){
     const nick = (profile && profile.nick) ? profile.nick : DEFAULT_NICK;
-    const tone = analyzeTone(userText);
-    // base weights (romantic + submissive + playful)
-    let weightRom = 0.4, weightSub = 0.25, weightPlay = 0.2, weightJeal = 0.0;
-    // adjust by detected tone
-    weightRom += tone.romantic * 0.2;
-    weightPlay += tone.playful * 0.25;
-    weightSub += tone.command * 0.35;
-    if(tone.jealous > 0) weightJeal = (profile && profile.jealous === 'off') ? 0 : (profile.jealous === 'strong' ? 0.6 : 0.25);
+    const info = analyze(userText);
+    // weights
+    let romW = 0.4 + info.rom*0.15;
+    let playW = 0.2 + info.play*0.2;
+    let subW = 0.15 + info.cmd*0.25;
+    let jealousW = 0;
+    if(info.jealous > 0 && profile && profile.jealous !== "off") jealousW = (profile.jealous === "strong" ? 0.45 : 0.22);
     // normalize
-    const total = weightRom + weightSub + weightPlay + weightJeal;
-    weightRom /= total; weightSub /= total; weightPlay /= total; weightJeal /= total;
-    // build candidate pieces
-    const pieces = [];
-    // romantic piece
-    if(Math.random() < weightRom + 0.1){
-      let rom = pick(vocab.rom);
-      rom = rom.replace('{nick}', nick);
-      pieces.push(rom);
+    const total = romW + playW + subW + jealousW;
+    romW /= total; playW/=total; subW/=total; jealousW/=total;
+
+    // micro-behaviors
+    const parts = [];
+    // sometimes start with thinking filler
+    if(chance(0.28)) parts.push(pick(vocab.thinking));
+    // choose 1-2 short fragments based on weights
+    if(chance(romW + 0.1)){
+      parts.push( pick(vocab.rom).replace("{nick}", nick) );
     }
-    // submissive piece
-    if(Math.random() < weightSub + 0.05){
-      let sub = pick(vocab.submissive);
-      sub = sub.replace('{nick}', nick);
-      pieces.push(sub);
+    if(chance(subW + 0.08)){
+      parts.push( pick(vocab.sub).replace("{nick}", nick) );
     }
-    // playful piece
-    if(Math.random() < weightPlay + 0.05){
-      pieces.push(pick(vocab.playful));
+    if(chance(playW + 0.06)){
+      parts.push( pick(vocab.playful) );
     }
-    // jealousy
-    if(weightJeal > 0 && tone.jealous > 0 && Math.random() < weightJeal + 0.1){
-      pieces.push(pick(vocab.jealous));
+    if(jealousW > 0 && info.jealous > 0 && chance(jealousW + 0.05)){
+      parts.push( pick(vocab.jealous) );
     }
-    // fallback
-    if(pieces.length === 0){
-      pieces.push(pick(vocab.sweet));
+    // if user asked a question, sometimes answer short + follow-up question
+    let final = "";
+    if(parts.length === 0){
+      // fallback short affectionate
+      final = pick(vocab.rom).replace("{nick}", nick);
+    } else {
+      // combine but keep it short: join by " — " or commas
+      final = parts.join(" ");
+      // shorten if too long (prefer short natural responses)
+      if(final.length > 110 && chance(0.6)){
+        // pick a shorter fragment to reply quickly
+        final = pick(parts).split(" ").slice(0,10).join(" ").trim();
+      }
     }
-    // add a thinking filler sometimes for realism
-    if(chance(0.28)) pieces.unshift(pick(vocab.thinking));
-    // occasionally append a Japanese bit
-    if(chance(0.33)) pieces.push(pick(vocab.japanese));
-    // combine elegantly
-    let resp = pieces.join(' ');
-    // small naturalizing adjustments
-    resp = resp.replace(/\s{2,}/g,' ').trim();
-    // add shy stutter sometimes if submissive heavy
-    if(weightSub > 0.45 && chance(0.35)) resp = resp.replace(/^/, 'Eu... ');
-    return resp;
+
+    // natural human touches (stutter, correction)
+    if(chance(0.18) && subW > 0.4){
+      if(chance(0.4)) final = "Eu... " + final;
+      else final = final.replace(/^/, "Eu... ");
+    }
+    if(chance(0.12)){
+      // small correction: "na verdade..."
+      if(chance(0.5)) final += " ...na verdade, eu quero ficar com você.";
+      else final += " ...perdão, me perdi >///<";
+    }
+    // sometimes append japanese cute bit
+    if(chance(0.33)) final += " " + pick(vocab.japanese);
+    final = final.replace(/\s{2,}/g," ").trim();
+    // avoid exact duplicate
+    if(final === lastResp){
+      final += [" 💖"," 😘"," >///<"][Math.floor(Math.random()*3)];
+    }
+    lastResp = final;
+
+    // decide if Sate should ask something next (initiative)
+    let follow = null;
+    if(info.q === 0 && chance(0.28)){
+      follow = pick(vocab.initiative);
+      // friendly short joiner
+      if(chance(0.5)) follow = (chance(0.5) ? " " : " ") + follow;
+    }
+
+    return {text: final, follow};
   }
 
-  // ensure uniqueness
-  let lastResponse = '';
-  function uniqueResponse(r){
-    if(r === lastResponse){
-      r += [' 💖',' 😘',' >///<'][Math.floor(Math.random()*3)];
-    }
-    lastResponse = r;
-    return r;
-  }
-
-  // send flow
+  // ====== send flow with typing simulation and follow-up ======
   function userSend(raw){
-    const text = safeText(raw);
+    const text = safe(raw);
     if(!text) return;
     const profile = loadProfile();
-    const time = now();
-    render('user', text, time);
-    const hist = loadHistory(); hist.push({from:'user', text, time}); saveHistory(hist);
-    MSG.value = '';
-    MSG.focus();
+    const time = Date.now();
+    render("user", text, time);
+    const hist = loadHistory(); hist.push({from:"user", text, time}); saveHistory(hist);
+    MSG.value = "";
 
-    // typing simulation time depends on length + thought
-    const typing = Math.min(2500, 300 + Math.random()*800 + Math.min(900, text.length*20));
-    // show typing indicator
-    const typingEl = document.createElement('div'); typingEl.className='msg sate';
-    const av = document.createElement('div'); av.className='avatar'; av.style.backgroundImage = `url(${AVATAR})`; typingEl.appendChild(av);
-    const b = document.createElement('div'); b.className='bubble'; const t = document.createElement('div'); t.className='timestamp'; t.textContent = '...'; b.appendChild(t); typingEl.appendChild(b);
-    CHAT.appendChild(typingEl); CHAT.scrollTop = CHAT.scrollHeight;
+    // typing delay (shorter for short messages)
+    const typing = Math.min(2000, 200 + Math.random()*600 + Math.min(700, text.length*12));
+    showTypingIndicator();
 
     setTimeout(()=>{
-      typingEl.remove();
-      // generate response using memory & tone
+      hideTypingIndicator();
       const prof = loadProfile();
-      // prefill nick if empty and user provided a name like "Meu PA" -> store
-      const respRaw = composeResponse(text, prof, hist);
-      const resp = uniqueResponse(respRaw);
-      render('sate', resp, now());
-      const h2 = loadHistory(); h2.push({from:'sate', text:resp, time: now()}); saveHistory(h2);
-      // sometimes follow-up question for engagement
-      if(chance(0.22)){
-        setTimeout(()=>{ const q = pick(["E você, o que acha?","Quer que eu pergunte algo?","Me conta mais, por favor 😌"]); render('sate', q, now()); const h3 = loadHistory(); h3.push({from:'sate', text:q, time: now()}); saveHistory(h3); }, 700 + Math.random()*800);
+      const gen = compose(text, prof, hist);
+      render("sate", gen.text, Date.now());
+      const h2 = loadHistory(); h2.push({from:"sate", text:gen.text, time: Date.now()}); saveHistory(h2);
+
+      // if follow-up exists, ask after short pause
+      if(gen.follow && chance(0.6)){
+        setTimeout(()=>{ render("sate", gen.follow, Date.now()); const h3 = loadHistory(); h3.push({from:"sate", text:gen.follow, time: Date.now()}); saveHistory(h3); }, 700 + Math.random()*900);
       }
     }, typing);
   }
 
-  // profile UI & helpers
-  document.getElementById('btnProfile').onclick = ()=>{
-    const p = document.getElementById('panelProfile'); p.style.display = p.style.display==='none' ? 'block' : 'none';
-    document.getElementById('panelGames').style.display = 'none'; document.getElementById('panelMemory').style.display = 'none';
-  };
-  document.getElementById('btnGames').onclick = ()=>{
-    const p = document.getElementById('panelGames'); p.style.display = p.style.display==='none' ? 'block' : 'none';
-    document.getElementById('panelProfile').style.display = 'none'; document.getElementById('panelMemory').style.display = 'none';
-  };
-  document.getElementById('btnMemory').onclick = ()=>{
-    const p = document.getElementById('panelMemory'); p.style.display = p.style.display==='none' ? 'block' : 'none';
-    document.getElementById('panelGames').style.display = 'none'; document.getElementById('panelProfile').style.display = 'none';
-    loadMemories();
-  };
+  // ====== typing indicator ======
+  let typingEl = null;
+  function showTypingIndicator(){
+    if(typingEl) return;
+    typingEl = document.createElement("div"); typingEl.className = "msg sate";
+    const av = document.createElement("div"); av.className = "avatar"; av.style.backgroundImage = `url(${AVATAR_URL})`;
+    typingEl.appendChild(av);
+    const b = document.createElement("div"); b.className = "bubble";
+    const t = document.createElement("div"); t.className = "timestamp"; t.textContent = " ... ";
+    b.appendChild(t);
+    typingEl.appendChild(b);
+    CHAT.appendChild(typingEl); CHAT.scrollTop = CHAT.scrollHeight;
+  }
+  function hideTypingIndicator(){ if(typingEl){ typingEl.remove(); typingEl = null; } }
 
-  document.getElementById('saveProfile').onclick = ()=>{
-    const nick = document.getElementById('inputName').value.trim() || DEFAULT_NICK;
-    const note = document.getElementById('inputNote').value.trim() || '';
-    const jealous = document.getElementById('jealous').value || 'light';
-    const p = {nick, note, jealous, time: now()};
+  // ====== UI wiring ======
+  document.getElementById("btnProfile").onclick = ()=>{ toggle("panelProfile"); hideAll(["panelGames","panelMemory"]); };
+  document.getElementById("btnGames").onclick = ()=>{ toggle("panelGames"); hideAll(["panelProfile","panelMemory"]); };
+  document.getElementById("btnMemory").onclick = ()=>{ toggle("panelMemory"); hideAll(["panelProfile","panelGames"]); loadMem(); };
+  function toggle(id){ const el = document.getElementById(id); el.style.display = el.style.display === "none" ? "block" : "none"; }
+  function hideAll(ids){ ids.forEach(i=>document.getElementById(i).style.display='none'); }
+
+  document.getElementById("saveProfile").onclick = ()=>{
+    const nick = (document.getElementById("inputName").value.trim() || DEFAULT_NICK);
+    const note = document.getElementById("inputNote").value.trim();
+    const jealous = document.getElementById("jealous").value || "light";
+    const p = {nick, note, jealous, time: Date.now()};
     saveProfile(p);
-    render('sate', `Prontinho, ${nick}. Eu vou lembrar disso 💖`, now());
-    const h = loadHistory(); h.push({from:'sate', text:`Prontinho, ${nick}. Eu vou lembrar disso 💖`, time: now()}); saveHistory(h);
+    render("sate", `Prontinho, ${nick}. Vou lembrar disso 💖`, Date.now());
+    const h = loadHistory(); h.push({from:"sate", text:`Prontinho, ${nick}. Vou lembrar disso 💖`, time: Date.now()}); saveHistory(h);
+    // update header avatar alt title
+    document.querySelector(".title").textContent = `Sate — sua parceira virtual (v3)`;
   };
 
-  // memory panel functions
-  document.getElementById('clearMemory').onclick = ()=>{
-    localStorage.removeItem(PROFILE_KEY);
-    localStorage.removeItem(STORAGE_KEY);
-    render('sate','Memórias apagadas. Vou recomeçar com você 💧', now());
+  // games (simple)
+  document.getElementById("startQuiz").onclick = startQuiz;
+  document.getElementById("startTimer").onclick = startTimer;
+  document.getElementById("startGuess").onclick = startGuess;
+
+  // memory
+  document.getElementById("clearMemory").onclick = ()=>{
+    localStorage.removeItem(PROFILE_KEY); localStorage.removeItem(STORAGE_KEY);
+    render("sate", "Memórias apagadas. Recomeçando com você 💧", Date.now());
   };
-  function loadMemories(){
-    const p = loadProfile();
-    const el = document.getElementById('memoryList');
-    el.innerHTML = '';
-    if(!p || (!p.nick && !p.note)) { el.textContent = 'Nenhuma memória salva.'; return; }
-    const d = document.createElement('div'); d.innerHTML = `<strong>Apelido:</strong> ${p.nick || '—'}<br><strong>Nota:</strong> ${p.note || '—'}<br><small class="small">Salvo: ${new Date(p.time).toLocaleString()}</small>`;
+  function loadMem(){
+    const p = loadProfile(); const el = document.getElementById("memoryList"); el.innerHTML = "";
+    if(!p || (!p.nick && !p.note)) { el.textContent = "Nenhuma memória salva."; return; }
+    const d = document.createElement("div"); d.innerHTML = `<strong>Apelido:</strong> ${p.nick||"—"}<br><strong>Nota:</strong> ${p.note||"—"}<br><small class="small">Salvo: ${new Date(p.time).toLocaleString()}</small>`;
     el.appendChild(d);
   }
 
-  // games (simple re-use)
-  document.getElementById('startQuiz').onclick = startQuiz;
-  document.getElementById('startTimer').onclick = startTimer;
-  document.getElementById('startGuess').onclick = startGuess;
-
+  // games implementations (same as before)
   function startQuiz(){
     const qset = [
       {q:"Qual a capital do Brasil?", opts:["São Paulo","Brasília","Rio de Janeiro"], a:1},
       {q:"2+2 é igual a?", opts:["3","4","5"], a:1},
       {q:"Qual é a língua oficial do Japão?", opts:["Coreano","Japonês","Inglês"], a:1}
     ];
-    let idx=0,score=0;
-    const gp = document.getElementById('gamePlay'); gp.innerHTML = '';
-    function renderQ(){
-      gp.innerHTML = `<div class="small"><strong>${qset[idx].q}</strong></div>`;
-      qset[idx].opts.forEach((o,i)=>{ const b = document.createElement('div'); b.className='control-btn option'; b.textContent = o; b.onclick = ()=>{ if(i===qset[idx].a) score++; idx++; if(idx<qset.length) renderQ(); else finish(); }; gp.appendChild(b); });
-    }
-    function finish(){ gp.innerHTML = `<div class="small">Fim! ${score}/${qset.length}</div>`; render('sate', `Você fez ${score} pontos 😄`, now()); }
+    let idx=0,score=0; const gp = document.getElementById("gamePlay"); gp.innerHTML = "";
+    function renderQ(){ gp.innerHTML = `<div class="small"><strong>${qset[idx].q}</strong></div>`; qset[idx].opts.forEach((o,i)=>{ const b=document.createElement("div"); b.className="option"; b.textContent=o; b.onclick=()=>{ if(i===qset[idx].a) score++; idx++; if(idx<qset.length) renderQ(); else finish(); }; gp.appendChild(b); }); }
+    function finish(){ gp.innerHTML = `<div class="small">Fim! ${score}/${qset.length}</div>`; render("sate", `Você fez ${score} pontos 😄`, Date.now()); }
     renderQ();
   }
-
   let timerInterval = null;
-  function startTimer(){
-    const gp = document.getElementById('gamePlay'); let secs = 25*60; if(timerInterval) clearInterval(timerInterval);
-    gp.innerHTML = `<div class="small">Pomodoro: 25:00</div>`;
-    timerInterval = setInterval(()=>{ secs--; const mm = String(Math.floor(secs/60)).padStart(2,'0'); const ss = String(secs%60).padStart(2,'0'); gp.innerHTML = `<div class="small">Pomodoro: ${mm}:${ss}</div>`; if(secs<=0){ clearInterval(timerInterval); timerInterval=null; gp.innerHTML = `<div class="small">Tempo encerrado! 🎉</div>`; render('sate','Terminei o timer, vamos de pausa? 😚', now()); } }, 1000);
-  }
+  function startTimer(){ const gp = document.getElementById("gamePlay"); let secs=25*60; if(timerInterval) clearInterval(timerInterval); gp.innerHTML = `<div class="small">Pomodoro: 25:00</div>`; timerInterval=setInterval(()=>{ secs--; const mm=String(Math.floor(secs/60)).padStart(2,'0'); const ss=String(secs%60).padStart(2,'0'); gp.innerHTML=`<div class="small">Pomodoro: ${mm}:${ss}</div>`; if(secs<=0){ clearInterval(timerInterval); timerInterval=null; gp.innerHTML=`<div class="small">Tempo encerrado! 🎉</div>`; render("sate","Terminei o timer, vamos de pausa? 😚", Date.now()); } },1000); }
+  function startGuess(){ const gp = document.getElementById("gamePlay"); gp.innerHTML=""; const target=Math.floor(Math.random()*20)+1; const prompt=document.createElement("div"); prompt.textContent="Pensei em um número entre 1 e 20. Tenta adivinhar:"; const input=document.createElement("input"); input.placeholder="Seu palpite"; input.style.marginTop="6px"; input.style.padding="8px"; const btn=document.createElement("button"); btn.className="control-btn"; btn.textContent="Chutar"; btn.onclick=()=>{ const val=parseInt(input.value,10); if(!val){ alert("Digite um número"); return; } if(val===target){ gp.innerHTML="<div>Acertou! 🎉</div>"; render("sate","Uau, você acertou! 😏", Date.now()); } else if(val<target) render("sate","Um pouco maior... tenta de novo!", Date.now()); else render("sate","Tenta um pouco menor... você consegue!", Date.now()); }; gp.appendChild(prompt); gp.appendChild(input); gp.appendChild(btn); }
 
-  function startGuess(){
-    const gp = document.getElementById('gamePlay'); gp.innerHTML = '';
-    const target = Math.floor(Math.random()*20)+1;
-    const prompt = document.createElement('div'); prompt.textContent = 'Pensei em um número entre 1 e 20. Tenta adivinhar:';
-    const input = document.createElement('input'); input.placeholder='Seu palpite'; input.style.marginTop='6px'; input.style.padding='8px';
-    const btn = document.createElement('button'); btn.className='control-btn'; btn.textContent='Chutar';
-    btn.onclick = ()=>{ const val = parseInt(input.value,10); if(!val){ alert('Digite um número'); return; } if(val===target){ gp.innerHTML = '<div>Acertou! 🎉</div>'; render('sate','Uau, você acertou! 😏', now()); } else if(val<target) render('sate','Um pouquinho maior... tenta de novo!', now()); else render('sate','Tenta um pouco menor... você consegue!', now()); };
-    gp.appendChild(prompt); gp.appendChild(input); gp.appendChild(btn);
-  }
-
-  // initial boot: restore history or greeting
+  // initial greeting / restore
   function boot(){
     const hist = loadHistory();
     const prof = loadProfile();
-    if(hist && hist.length){ hist.forEach(m => render(m.from==='sate' ? 'sate' : 'user', m.text, m.time)); return; }
-    // set default nick from user input if not provided
-    if(!prof.nick){
-      saveProfile({nick:DEFAULT_NICK, note:'', jealous:'light', time: now()});
-    }
-    render('sate', `Oi ${ (loadProfile().nick || DEFAULT_NICK) }… eu sou a Sate. Vem conversar comigo 💖`, now());
-    saveHistory([{from:'sate', text:`Oi ${(loadProfile().nick||DEFAULT_NICK)}… eu sou a Sate. Vem conversar comigo 💖`, time: now()}]);
+    if(!prof || !prof.nick) saveProfile({nick: DEFAULT_NICK, note:"", jealous:"light", time: Date.now()});
+    if(hist && hist.length){ hist.forEach(m => render(m.from==="sate" ? "sate" : "user", m.text, m.time)); return; }
+    render("sate", `Oi ${(loadProfile().nick || DEFAULT_NICK)}… eu sou a Sate. Vem conversar comigo 💖`, Date.now());
+    saveHistory([{from:"sate", text:`Oi ${(loadProfile().nick||DEFAULT_NICK)}… eu sou a Sate. Vem conversar comigo 💖`, time: Date.now()}]);
   }
 
   // bind send
-  SEND.onclick = ()=>userSend(MSG.value);
-  MSG.addEventListener('keypress', e=>{ if(e.key==='Enter') userSend(MSG.value); });
+  SEND.onclick = ()=> userSend(MSG.value);
+  MSG.addEventListener("keypress", e=>{ if(e.key === "Enter") userSend(MSG.value); });
 
-  // register service worker if available
-  if('serviceWorker' in navigator){
-    navigator.serviceWorker.register('service-worker.js').catch(()=>{/* ignore */});
-  }
+  // typing indicator helpers
+  function showTypingIndicator(){ showTypingIndicator; } // placeholder (we use inline typing)
+  function hideTypingIndicator(){ } // handled in flow
 
   boot();
 
-  // expose for debug
-  window.SateV2 = { loadProfile, saveProfile, loadHistory, saveHistory };
+  // expose few helpers for debugging
+  window.SateV3 = { loadProfile, saveProfile, loadHistory, saveHistory };
 
 })();
-</script>
-</body>
-</html>
+</
