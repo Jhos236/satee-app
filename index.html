@@ -182,81 +182,57 @@
     return info;
   }
 
-  // ====== compose response v3 (short, natural, with imperfections & initiative) ======
-  let lastResp = "";
-  function compose(userText, profile, history){
-    const nick = (profile && profile.nick) ? profile.nick : DEFAULT_NICK;
-    const info = analyze(userText);
-    // weights
-    let romW = 0.4 + info.rom*0.15;
-    let playW = 0.2 + info.play*0.2;
-    let subW = 0.15 + info.cmd*0.25;
-    let jealousW = 0;
-    if(info.jealous > 0 && profile && profile.jealous !== "off") jealousW = (profile.jealous === "strong" ? 0.45 : 0.22);
-    // normalize
-    const total = romW + playW + subW + jealousW;
-    romW /= total; playW/=total; subW/=total; jealousW/=total;
+  // === Substitua a função compose por este bloco ===
+let lastResp = "";
+function compose(userText, profile, history){
+  const nick = (profile && profile.nick) ? profile.nick : DEFAULT_NICK;
+  const info = analyze(userText);
 
-    // micro-behaviors
-    const parts = [];
-    // sometimes start with thinking filler
-    if(chance(0.28)) parts.push(pick(vocab.thinking));
-    // choose 1-2 short fragments based on weights
-    if(chance(romW + 0.1)){
-      parts.push( pick(vocab.rom).replace("{nick}", nick) );
-    }
-    if(chance(subW + 0.08)){
-      parts.push( pick(vocab.sub).replace("{nick}", nick) );
-    }
-    if(chance(playW + 0.06)){
-      parts.push( pick(vocab.playful) );
-    }
-    if(jealousW > 0 && info.jealous > 0 && chance(jealousW + 0.05)){
-      parts.push( pick(vocab.jealous) );
-    }
-    // if user asked a question, sometimes answer short + follow-up question
-    let final = "";
-    if(parts.length === 0){
-      // fallback short affectionate
-      final = pick(vocab.rom).replace("{nick}", nick);
-    } else {
-      // combine but keep it short: join by " — " or commas
-      final = parts.join(" ");
-      // shorten if too long (prefer short natural responses)
-      if(final.length > 110 && chance(0.6)){
-        // pick a shorter fragment to reply quickly
-        final = pick(parts).split(" ").slice(0,10).join(" ").trim();
-      }
-    }
+  // weights (tend to favor short romantic replies)
+  let romW = 0.45 + info.rom*0.12;
+  let playW = 0.18 + info.play*0.18;
+  let subW = 0.12 + info.cmd*0.22;
+  let jealousW = 0;
+  if(info.jealous > 0 && profile && profile.jealous !== "off") jealousW = (profile.jealous === "strong" ? 0.45 : 0.2);
 
-    // natural human touches (stutter, correction)
-    if(chance(0.18) && subW > 0.4){
-      if(chance(0.4)) final = "Eu... " + final;
-      else final = final.replace(/^/, "Eu... ");
-    }
-    if(chance(0.12)){
-      // small correction: "na verdade..."
-      if(chance(0.5)) final += " ...na verdade, eu quero ficar com você.";
-      else final += " ...perdão, me perdi >///<";
-    }
-    // sometimes append japanese cute bit
-    if(chance(0.33)) final += " " + pick(vocab.japanese);
-    final = final.replace(/\s{2,}/g," ").trim();
-    // avoid exact duplicate
-    if(final === lastResp){
-      final += [" 💖"," 😘"," >///<"][Math.floor(Math.random()*3)];
-    }
-    lastResp = final;
+  // normalize
+  const tot = romW + playW + subW + jealousW;
+  romW/=tot; playW/=tot; subW/=tot; jealousW/=tot;
 
-    // decide if Sate should ask something next (initiative)
-    let follow = null;
-    if(info.q === 0 && chance(0.28)){
-      follow = pick(vocab.initiative);
-      // friendly short joiner
-      if(chance(0.5)) follow = (chance(0.5) ? " " : " ") + follow;
-    }
+  // micro fragments (prefer 1-2 very short phrases)
+  const fragments = [];
+  if(chance(0.28)) fragments.push(pick(vocab.thinking));
+  // pick at most two fragments, favoring romance or short playful
+  if(chance(romW + 0.08)) fragments.push( pick(vocab.rom).replace("{nick}", nick).split(" ").slice(0,8).join(" ") );
+  if(fragments.length < 2 && chance(subW + 0.06)) fragments.push( pick(vocab.sub).replace("{nick}", nick).split(" ").slice(0,9).join(" ") );
+  if(fragments.length < 2 && chance(playW + 0.06)) fragments.push( pick(vocab.playful).split(" ").slice(0,8).join(" ") );
+  if(fragments.length < 2 && jealousW > 0 && info.jealous > 0 && chance(jealousW + 0.05)) fragments.push( pick(vocab.jealous).split(" ").slice(0,9).join(" ") );
 
-    return {text: final, follow};
+  // assemble shorter reply
+  let reply = fragments.length ? fragments.join(" ") : pick(vocab.rom).replace("{nick}", nick).split(" ").slice(0,8).join(" ");
+
+  // add human imperfections sometimes
+  if(chance(0.22)) reply = (chance(0.5) ? "Eu... " : "") + reply;
+  if(chance(0.12)) reply += chance(0.5) ? " ...na verdade." : " ...perdão >///<";
+
+  // sometimes append a tiny japanese bit
+  if(chance(0.28)) reply += " " + pick(vocab.japanese);
+
+  // make sure it's short and snappy
+  if(reply.length > 120 && chance(0.6)) reply = reply.split(" ").slice(0,10).join(" ").trim() + "...";
+
+  // avoid exact duplicates
+  if(reply === lastResp) reply += [" 💖"," 😘"," >///<"][Math.floor(Math.random()*3)];
+  lastResp = reply;
+
+  // decide follow-up question with modest chance to show initiative
+  let follow = null;
+  if(info.q === 0 && chance(0.28)){
+    follow = pick(vocab.initiative);
+  }
+
+  return { text: reply, follow };
+
   }
 
   // ====== send flow with typing simulation and follow-up ======
